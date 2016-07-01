@@ -2,6 +2,10 @@ from __future__ import absolute_import, division, print_function
 
 from datetime import datetime
 
+import json
+
+from effect.testing import resolve_effect
+
 # treated like a 3rd party package since in path
 from gaspocket.bot import (
     get_codecov_status,
@@ -100,3 +104,32 @@ class TestFetchStatuses(SynchronousTestCase):
             b'https://status.github.com/api/status.json',
             http.url
         )
+
+    @inlineCallbacks
+    def test_get_codecov_status_request_success(self):
+        with open(self.codecov_atom, 'r') as f:
+            status_page = f.read()
+        threshold_time = datetime(2016, 6, 30, 10, 0)
+        eff = yield get_codecov_status(threshold_time)
+        self.assertEqual(1, len(resolve_effect(eff, status_page)))
+
+    @inlineCallbacks
+    def test_get_travis_status_request_success(self):
+        with open(self.travis_atom, 'r') as f:
+            status_page = f.read()
+        threshold_time = datetime(2016, 6, 30, 10, 0)
+        eff = yield get_codecov_status(threshold_time)
+        self.assertEqual(2, len(resolve_effect(eff, status_page)))
+
+    @inlineCallbacks
+    def test_get_github_status_request_success(self):
+        response = u'''
+{
+  "status": "good",
+  "last_updated": "2012-12-07T18:11:55Z"
+}
+'''
+        eff = yield get_github_status()
+        self.assertEqual(
+            u'good',
+            resolve_effect(eff, json.loads(response)))
