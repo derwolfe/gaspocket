@@ -2,10 +2,17 @@ from __future__ import absolute_import, division, print_function
 
 from datetime import datetime
 
+# treated like a 3rd party package since in path
+from gaspocket.bot import (
+    get_codecov_status,
+    get_github_status,
+    get_travis_status,
+    parse_atom_feed
+)
+
+from twisted.internet.defer import inlineCallbacks
 from twisted.python.filepath import FilePath
 from twisted.trial.unittest import SynchronousTestCase
-
-from ..gaspocket.bot import get_codecov_status, parse_atom_feed
 
 
 class AtomParsingTests(SynchronousTestCase):
@@ -60,16 +67,36 @@ class AtomParsingTests(SynchronousTestCase):
         self.assertEqual([], result)
 
 
-class TestFetchCodecovStatus(SynchronousTestCase):
+class TestFetchStatuses(SynchronousTestCase):
 
-    def test_fetches_feed(self):
-        d = get_codecov_status()
+    def setUp(self):
+        atom_fixtures = FilePath(__file__).parent().child('fixtures')
+        self.codecov_atom = atom_fixtures.child('codecov.atom').path
+        self.travis_atom = atom_fixtures.child('travis.atom').path
 
-        def check(result):
-            print(result)
-            self.assertTrue(True)
-        d.addCallback(check)
-        return d
+    @inlineCallbacks
+    def test_get_travis_status_request(self):
+        eff = yield get_travis_status(datetime.now())
+        http = eff.intent
+        self.assertEqual(
+            b'http://www.traviscistatus.com/history.atom',
+            http.url
+        )
 
-    # def test_parse_atom_feed(self):
-    # make a feed file and check that it parses
+    @inlineCallbacks
+    def test_get_codecov_status_request(self):
+        eff = yield get_codecov_status(datetime.now())
+        http = eff.intent
+        self.assertEqual(
+            b'http://status.codecov.io/history.atom',
+            http.url
+        )
+
+    @inlineCallbacks
+    def test_get_github_status_request(self):
+        eff = yield get_github_status()
+        http = eff.intent
+        self.assertEqual(
+            b'https://status.github.com/api/status.json',
+            http.url
+        )

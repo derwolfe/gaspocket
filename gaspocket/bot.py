@@ -3,12 +3,17 @@ from __future__ import absolute_import, division, print_function
 from datetime import datetime
 from time import mktime
 
+from effect import Effect
+
 import feedparser
 
 import treq
 
-# from twisted.internet import reactor, task
 from twisted.internet.defer import inlineCallbacks, returnValue
+
+from txeffect import deferred_performer
+
+# from twisted.internet import reactor, task
 
 
 # from twython import Twython
@@ -18,6 +23,34 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 #                   "YOUR API SECRET",
 #                   "YOUR ACCESS TOKEN",
 #                   "YOUR ACCESS TOKEN SECRET")
+
+
+@deferred_performer
+def perform_content_request_with_treq(dispatcher, http_request):
+    return treq.get(http_request.url).addCallback(treq.content)
+
+
+@deferred_performer
+def perform_json_request_with_treq(dispatcher, http_request):
+    return treq.get(http_request.url).addCallback(treq.json)
+
+
+class HTTPContentRequest(object):
+
+    def __init__(self, url):
+        self.url = url
+
+    def __repr__(self):
+        return "HTTPContentRequest(%r)" % (self.url,)
+
+
+class HTTPJSONRequest(object):
+
+    def __init__(self, url):
+        self.url = url
+
+    def __repr__(self):
+        return "HTTPJSONRequest(%r)" % (self.url,)
 
 
 def parse_atom_feed(feed, threshold_time):
@@ -41,43 +74,36 @@ def parse_atom_feed(feed, threshold_time):
 
 @inlineCallbacks
 def get_github_status():
-    response = yield treq.get(b'https://status.github.com/api/status.json')
-    status = yield treq.json(response)
-
-    #
-    # returns:
-    # {
-    #    "status": "good",
-    #    "last_updated": "2012-12-07T18:11:55Z"
-    # }
-
-    returnValue(status[u'status'])
+    response = yield Effect(
+        HTTPJSONRequest(b'https://status.github.com/api/status.json')
+    )
+    returnValue(response.on(success=lambda r: r[u'status']))
 
 
 @inlineCallbacks
 def _get_statuspage_io_status(target, threshold_time):
-    response = yield treq.get()
-    feed = yield treq.content(response)
-    data = parse_atom_feed(feed, threshold_time)
-    returnValue(data)
+    response = yield Effect(
+        HTTPContentRequest(target)
+    )
+    returnValue(
+        response.on(
+            success=lambda feed: parse_atom_feed(feed, threshold_time)
+        )
+    )
 
 
-@inlineCallbacks
 def get_codecov_status(threshold_time):
-    data = yield _get_statuspage_io_status(
+    return _get_statuspage_io_status(
         target=b'http://status.codecov.io/history.atom',
         threshold_time=threshold_time
     )
-    returnValue(data)
 
 
-@inlineCallbacks
 def get_travis_status(threshold_time):
-    data = yield _get_statuspage_io_status(
+    return _get_statuspage_io_status(
         target=b'http://www.traviscistatus.com/history.atom',
         threshold_time=threshold_time
     )
-    returnValue(data)
 
 
 # def tweet(check):
