@@ -1,0 +1,6 @@
+.tox
+*.pyc
+.venv
+gaspocket.egg-info
+_trial_temp
+.coverage
