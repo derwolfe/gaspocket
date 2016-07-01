@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import mktime
 
 from effect import Effect
@@ -10,11 +10,11 @@ import feedparser
 import treq
 
 from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.logger import Logger
 
 from txeffect import deferred_performer
 
-# from twisted.internet import reactor, task
-
+log = Logger()
 
 # from twython import Twython
 
@@ -119,6 +119,21 @@ def red_alert(codecov, travis, github):
     :returns: True or False
     """
     return github != u'good' or codecov or travis
+
+
+@inlineCallbacks
+def run():
+    # go get some statuses
+    threshold = datetime.now() - timedelta(hours=12)
+    travis = yield get_travis_status(threshold)
+    codecov = yield get_codecov_status(threshold)
+    github = yield get_github_status()
+
+    # see if we need to alert
+    if red_alert(codecov, travis, github):
+        log.info("ALL HELL BREAKING LOOSE")
+    else:
+        log.info("things are calm")
 
 
 # def tweet(check):
