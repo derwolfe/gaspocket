@@ -11,7 +11,8 @@ from gaspocket.bot import (
     get_codecov_status,
     get_github_status,
     get_travis_status,
-    parse_atom_feed
+    parse_atom_feed,
+    red_alert
 )
 
 from twisted.internet.defer import inlineCallbacks
@@ -132,4 +133,28 @@ class TestFetchStatuses(SynchronousTestCase):
         eff = yield get_github_status()
         self.assertEqual(
             u'good',
-            resolve_effect(eff, json.loads(response)))
+            resolve_effect(eff, json.loads(response))
+        )
+
+
+class RedAlertTests(SynchronousTestCase):
+
+    def test_no_alert_conditions(self):
+        c, t, g = ([], [], u'good')
+        self.assertFalse(red_alert(c, t, g))
+
+    def test_alert_conditions(self):
+        c, t, g = ([], [1], u'good')
+        self.assertTrue(red_alert(c, t, g))
+
+        c, t, g = ([1], [], u'good')
+        self.assertTrue(red_alert(c, t, g))
+
+        c, t, g = ([], [], u'bad')
+        self.assertTrue(red_alert(c, t, g))
+
+        c, t, g = ([], [1], u'bad')
+        self.assertTrue(red_alert(c, t, g))
+
+        c, t, g = ([1], [1], u'bad')
+        self.assertTrue(red_alert(c, t, g))

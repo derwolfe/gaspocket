@@ -106,6 +106,21 @@ def get_travis_status(threshold_time):
     )
 
 
+def red_alert(codecov, travis, github):
+    """
+    If any of these are producing error messages, then we should alert.
+
+    :param codecov: a list of new codecov statuses from the period
+        of time we care about.
+    :param travis: a list of new travis statuses from the period
+        of time we care about.
+    :param github: a string with github's status, either good or bad.
+
+    :returns: True or False
+    """
+    return github != u'good' or codecov or travis
+
+
 # def tweet(check):
 #     """Tweet sentence to Twitter."""
 #     try:
