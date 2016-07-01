@@ -1,57 +1,83 @@
-"""Twitter bot that tweets a random line from a file.
+from __future__ import absolute_import, division, print_function
 
-Uses Twisted to periodically select a random line from an input file,
-and Twython to post it to Twitter using your credentials.
+from datetime import datetime
+from time import mktime
 
-Usage: python twitterbot.py file.txt, where each line in file.txt is
-a single sentence terminated by a newline ('\n').
-"""
-
-import sys
-import datetime
+import feedparser
 
 import treq
 
-from twisted.internet import task, reactor
-from twisted.internet.defer import inlineCallbacks
-
-from twython import Twython
-
-TIMEOUT = datetime.timedelta(hours=1).seconds
-twitter = Twython("YOUR API KEY",
-                  "YOUR API SECRET",
-                  "YOUR ACCESS TOKEN",
-                  "YOUR ACCESS TOKEN SECRET")
+# from twisted.internet import reactor, task
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 
-def parse_travis(feed):
-    pass
+# from twython import Twython
+
+# TIMEOUT = datetime.timedelta(hours=1).seconds
+# twitter = Twython("YOUR API KEY",
+#                   "YOUR API SECRET",
+#                   "YOUR ACCESS TOKEN",
+#                   "YOUR ACCESS TOKEN SECRET")
 
 
-def parse_codecov(fixed):
-    pass
+def parse_atom_feed(feed, threshold_time):
+    data = feedparser.parse(feed)
+    entries = [e for e in data["items"]]
+    # only get the most recent
+    by_date = sorted(entries, key=lambda entry: entry["date_parsed"])[::-1]
+
+    # return any entries that have taken place between now and the threshold
+    # time
+    entries = []
+    for entry in by_date:
+        entry_time_struct = entry['updated_parsed']
+        entry_time = datetime.fromtimestamp(mktime(entry_time_struct))
+
+        if entry_time > threshold_time:
+            entries.append(entry)
+
+    return entries
 
 
+@inlineCallbacks
 def get_github_status():
-    # https://status.github.com/api/status.json
+    response = yield treq.get(b'https://status.github.com/api/status.json')
+    status = yield treq.json(response)
+
+    #
     # returns:
     # {
     #    "status": "good",
     #    "last_updated": "2012-12-07T18:11:55Z"
     # }
-    pass
+
+    returnValue(status[u'status'])
 
 
 @inlineCallbacks
-def get_codecov_status():
-    # http://status.codecov.io/history.atom
-    pass
+def _get_statuspage_io_status(target, threshold_time):
+    response = yield treq.get()
+    feed = yield treq.content(response)
+    data = parse_atom_feed(feed, threshold_time)
+    returnValue(data)
 
 
-def get_travis_status():
-    # https://www.traviscistatus.com/history.atom
-    pass
+@inlineCallbacks
+def get_codecov_status(threshold_time):
+    data = yield _get_statuspage_io_status(
+        target=b'http://status.codecov.io/history.atom',
+        threshold_time=threshold_time
+    )
+    returnValue(data)
 
+
+@inlineCallbacks
+def get_travis_status(threshold_time):
+    data = yield _get_statuspage_io_status(
+        target=b'http://www.traviscistatus.com/history.atom',
+        threshold_time=threshold_time
+    )
+    returnValue(data)
 
 
 # def tweet(check):
