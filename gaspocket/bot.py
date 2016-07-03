@@ -111,11 +111,11 @@ def run(reactor):
     # we will need to keep track of the last status
     if red_alert(codecov[1], travis[1], github[1]):
         msg = 'ALL HELL BREAKING LOOSE'
-        yield deferToThread(tweet, (msg, os.environ))
+        yield deferToThread(tweet, message=msg)
         error = 1
     else:
         msg = 'Things are calm again'
-        yield deferToThread(tweet, (msg, os.environ))
+        yield deferToThread(tweet, message=msg)
         error = 0
 
     returnValue(error)
