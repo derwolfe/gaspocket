@@ -3,15 +3,19 @@ from __future__ import absolute_import, division, print_function
 from datetime import datetime, timedelta
 from time import mktime
 
+import sys
+
 import feedparser
 
 import treq
 
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.logger import Logger
+from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
+
+from twisted.logger import jsonFileLogObserver, Logger
 
 
-log = Logger()
+log = Logger(observer=jsonFileLogObserver(sys.stdout), namespace="gaspocket")
+
 
 # from twython import Twython
 
@@ -24,31 +28,36 @@ log = Logger()
 
 @inlineCallbacks
 def http_json(url):
-    returnValue(treq.get(url).addCallback(lambda r: r.json()))
+    log.info("Calling {url}".format(url=url))
+    response = yield treq.get(url)
+    log.info("Got json response for {url}".format(url=url))
+    json_response = yield response.json()
+    returnValue(json_response)
 
 
 @inlineCallbacks
 def http_content(url):
-    returnValue(treq.get(url).addCallback(treq.content))
+    log.info("Calling {url}".format(url=url))
+    response = yield treq.get(url)
+    log.info("Got content response for {url}".format(url=url))
+    content = yield treq.content(response)
+    returnValue(content)
 
 
 def parse_atom_feed(feed, threshold_time):
+    log.debug("parsing")
     data = feedparser.parse(feed)
     entries = [e for e in data["items"]]
-    # only get the most recent
-    by_date = sorted(entries, key=lambda entry: entry["date_parsed"])[::-1]
 
-    # return any entries that have taken place between now and the threshold
-    # time
-    entries = []
-    for entry in by_date:
+    filtered = []
+    for entry in entries:
         entry_time_struct = entry['updated_parsed']
         entry_time = datetime.fromtimestamp(mktime(entry_time_struct))
 
         if entry_time > threshold_time:
-            entries.append(entry)
-
-    return entries
+            filtered.append(entry)
+    log.debug("done parsing")
+    return filtered
 
 
 @inlineCallbacks
@@ -81,19 +90,28 @@ def red_alert(codecov, travis, github):
     return github != u'good' or codecov or travis
 
 
-@inlineCallbacks
-def run():
-    # go get some statuses
-    threshold = datetime.now() - timedelta(hours=12)
-    travis = yield get_travis_status(threshold)
-    codecov = yield get_codecov_status(threshold)
-    github = yield get_github_status()
+def run(reactor):
+    threshold = datetime.now() - timedelta(hours=2)
+    # these could be done cooperatively/in parallel
+    t_d = get_travis_status(threshold)
+    c_d = get_codecov_status(threshold)
+    g_d = get_github_status()
 
-    # see if we need to alert
-    if red_alert(codecov, travis, github):
-        log.info("ALL HELL BREAKING LOOSE")
-    else:
-        log.info("things are calm")
+    d = DeferredList([t_d, c_d, g_d])
+
+    def check(resp):
+        print(resp)
+        return resp
+
+    d.addCallback(check)
+    return d
+
+    # # # see if we need to alert
+    # if red_alert(codecov, travis, github):
+    #     log.info("ALL HELL BREAKING LOOSE")
+    # else:
+    #     log.info("things are calm")
+
 
 
 # def tweet(check):
