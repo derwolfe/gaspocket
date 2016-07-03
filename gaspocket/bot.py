@@ -3,18 +3,16 @@ from __future__ import absolute_import, division, print_function
 from datetime import datetime, timedelta
 from time import mktime
 
-import sys
-
 import feedparser
 
 import treq
 
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
 
-from twisted.logger import jsonFileLogObserver, Logger
+from twisted.logger import Logger
 
 # set the observers up in main
-log = Logger(observer=jsonFileLogObserver(sys.stdout), namespace="gaspocket")
+log = Logger(namespace="gaspocket.bot")
 
 
 # from twython import Twython
@@ -93,7 +91,6 @@ def red_alert(codecov, travis, github):
 @inlineCallbacks
 def run(reactor):
     threshold = datetime.now() - timedelta(hours=2)
-    # these could be done cooperatively/in parallel
 
     travis, codecov, github = yield DeferredList(
         [
