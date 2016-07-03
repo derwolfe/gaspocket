@@ -25,32 +25,14 @@ log = Logger()
 #                   "YOUR ACCESS TOKEN SECRET")
 
 
-@deferred_performer
-def perform_content_request_with_treq(dispatcher, http_request):
-    return treq.get(http_request.url).addCallback(treq.content)
+@inlineCallbacks
+def http_json(url):
+    returnValue(treq.get(url).addCallback(treq.json))
 
 
-@deferred_performer
-def perform_json_request_with_treq(dispatcher, http_request):
-    return treq.get(http_request.url).addCallback(treq.json)
-
-
-class HTTPContentRequest(object):
-
-    def __init__(self, url):
-        self.url = url
-
-    def __repr__(self):
-        return "HTTPContentRequest(%r)" % (self.url,)
-
-
-class HTTPJSONRequest(object):
-
-    def __init__(self, url):
-        self.url = url
-
-    def __repr__(self):
-        return "HTTPJSONRequest(%r)" % (self.url,)
+@inlineCallbacks
+def http_content(url):
+    returnValue(treq.get(url).addCallback(treq.content))
 
 
 def parse_atom_feed(feed, threshold_time):
@@ -74,22 +56,14 @@ def parse_atom_feed(feed, threshold_time):
 
 @inlineCallbacks
 def get_github_status():
-    response = yield Effect(
-        HTTPJSONRequest(b'https://status.github.com/api/status.json')
-    )
-    returnValue(response.on(success=lambda r: r[u'status']))
+    parsed_json = yield http_json(b'https://status.github.com/api/status.json')
+    returnValue(parsed_json[u'status'])
 
 
 @inlineCallbacks
 def _get_statuspage_io_status(target, threshold_time):
-    response = yield Effect(
-        HTTPContentRequest(target)
-    )
-    returnValue(
-        response.on(
-            success=lambda feed: parse_atom_feed(feed, threshold_time)
-        )
-    )
+    parsed = yield http_content(target)
+    returnValue(parse_atom_feed(parsed, threshold_time))
 
 
 def get_codecov_status(threshold_time):
@@ -107,17 +81,6 @@ def get_travis_status(threshold_time):
 
 
 def red_alert(codecov, travis, github):
-    """
-    If any of these are producing error messages, then we should alert.
-
-    :param codecov: a list of new codecov statuses from the period
-        of time we care about.
-    :param travis: a list of new travis statuses from the period
-        of time we care about.
-    :param github: a string with github's status, either good or bad.
-
-    :returns: True or False
-    """
     return github != u'good' or codecov or travis
 
 

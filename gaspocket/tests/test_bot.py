@@ -79,48 +79,25 @@ class TestFetchStatuses(SynchronousTestCase):
         self.codecov_atom = atom_fixtures.child('codecov.atom').path
         self.travis_atom = atom_fixtures.child('travis.atom').path
 
-    @inlineCallbacks
-    def test_get_travis_status_request(self):
-        eff = yield get_travis_status(datetime.now())
-        http = eff.intent
-        self.assertEqual(
-            b'http://www.traviscistatus.com/history.atom',
-            http.url
-        )
-
-    @inlineCallbacks
-    def test_get_codecov_status_request(self):
-        eff = yield get_codecov_status(datetime.now())
-        http = eff.intent
-        self.assertEqual(
-            b'http://status.codecov.io/history.atom',
-            http.url
-        )
-
-    @inlineCallbacks
-    def test_get_github_status_request(self):
-        eff = yield get_github_status()
-        http = eff.intent
-        self.assertEqual(
-            b'https://status.github.com/api/status.json',
-            http.url
-        )
 
     @inlineCallbacks
     def test_get_codecov_status_request_success(self):
         with open(self.codecov_atom, 'r') as f:
             status_page = f.read()
         threshold_time = datetime(2016, 6, 30, 10, 0)
-        eff = yield get_codecov_status(threshold_time)
+        # mock
+        stati = yield get_codecov_status(threshold_time)
         self.assertEqual(1, len(resolve_effect(eff, status_page)))
 
     @inlineCallbacks
     def test_get_travis_status_request_success(self):
         with open(self.travis_atom, 'r') as f:
             status_page = f.read()
+
+
         threshold_time = datetime(2016, 6, 30, 10, 0)
-        eff = yield get_codecov_status(threshold_time)
-        self.assertEqual(2, len(resolve_effect(eff, status_page)))
+        stati = yield get_codecov_status(threshold_time)
+        self.assertEqual(2, len(result))
 
     @inlineCallbacks
     def test_get_github_status_request_success(self):
@@ -130,10 +107,10 @@ class TestFetchStatuses(SynchronousTestCase):
   "last_updated": "2012-12-07T18:11:55Z"
 }
 '''
-        eff = yield get_github_status()
+        status = yield get_github_status()
         self.assertEqual(
             u'good',
-            resolve_effect(eff, json.loads(response))
+            status
         )
 
 
