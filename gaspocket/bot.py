@@ -1,27 +1,25 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import datetime, timedelta
+
+import os
+
 from time import mktime
 
 import feedparser
 
 import treq
 
-from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
-
+from twisted.internet.defer import (
+    inlineCallbacks, returnValue, DeferredList
+)
+from twisted.internet.threads import deferToThread
 from twisted.logger import Logger
+
+from twython import Twython
 
 # set the observers up in main
 log = Logger(namespace="gaspocket.bot")
-
-
-# from twython import Twython
-
-# TIMEOUT = datetime.timedelta(hours=1).seconds
-# twitter = Twython("YOUR API KEY",
-#                   "YOUR API SECRET",
-#                   "YOUR ACCESS TOKEN",
-#                   "YOUR ACCESS TOKEN SECRET")
 
 
 @inlineCallbacks
@@ -88,6 +86,16 @@ def red_alert(codecov, travis, github):
     return github != u'good' or codecov or travis
 
 
+def tweet(message, env=os.environ):
+    twitter = Twython(
+        env['API_KEY'],
+        env['API_SECRET'],
+        env['ACCESS_TOKEN'],
+        env['ACCESS_TOKEN_SECRET']
+    )
+    twitter.update_status(status=message)
+
+
 @inlineCallbacks
 def run(reactor):
     threshold = datetime.now() - timedelta(hours=2)
@@ -99,14 +107,17 @@ def run(reactor):
             get_github_status()
         ]
     )
-
     error = 0
+    # we will need to keep track of the last status
     if red_alert(codecov[1], travis[1], github[1]):
-        log.warn("ALL HELL BREAKING LOOSE")
+        msg = 'ALL HELL BREAKING LOOSE'
+        yield deferToThread(tweet, (msg, os.environ))
         error = 1
     else:
-        log.info("things are calm")
+        msg = 'Things are calm again'
+        yield deferToThread(tweet, (msg, os.environ))
         error = 0
+
     returnValue(error)
 
 
