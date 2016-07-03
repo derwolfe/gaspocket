@@ -3,8 +3,6 @@ from __future__ import absolute_import, division, print_function
 from datetime import datetime, timedelta
 from time import mktime
 
-from effect import Effect
-
 import feedparser
 
 import treq
@@ -12,7 +10,6 @@ import treq
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.logger import Logger
 
-from txeffect import deferred_performer
 
 log = Logger()
 
@@ -27,7 +24,7 @@ log = Logger()
 
 @inlineCallbacks
 def http_json(url):
-    returnValue(treq.get(url).addCallback(treq.json))
+    returnValue(treq.get(url).addCallback(lambda r: r.json()))
 
 
 @inlineCallbacks

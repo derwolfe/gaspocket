@@ -4,18 +4,17 @@ from datetime import datetime
 
 import json
 
-from effect.testing import resolve_effect
+import gaspocket
 
-# treated like a 3rd party package since in path
 from gaspocket.bot import (
     get_codecov_status,
     get_github_status,
     get_travis_status,
     parse_atom_feed,
-    red_alert
+    red_alert,
 )
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from twisted.python.filepath import FilePath
 from twisted.trial.unittest import SynchronousTestCase
 
@@ -79,25 +78,38 @@ class TestFetchStatuses(SynchronousTestCase):
         self.codecov_atom = atom_fixtures.child('codecov.atom').path
         self.travis_atom = atom_fixtures.child('travis.atom').path
 
+    def called_n(self, n, call_count):
+        self.assertEqual(n, call_count)
+
+    def setupJsonMock(self, response):
+        def fake_json(_arg):
+            return succeed(json.loads(response))
+
+        self.patch(gaspocket.bot, 'http_json', fake_json)
+
+    def setupContentMock(self, response):
+        def fake_content(_arg):
+            return succeed(response)
+
+        self.patch(gaspocket.bot, 'http_content', fake_content)
 
     @inlineCallbacks
     def test_get_codecov_status_request_success(self):
         with open(self.codecov_atom, 'r') as f:
             status_page = f.read()
         threshold_time = datetime(2016, 6, 30, 10, 0)
-        # mock
+        self.setupContentMock(status_page)
         stati = yield get_codecov_status(threshold_time)
-        self.assertEqual(1, len(resolve_effect(eff, status_page)))
+        self.assertEqual(1, len(stati))
 
     @inlineCallbacks
     def test_get_travis_status_request_success(self):
         with open(self.travis_atom, 'r') as f:
             status_page = f.read()
-
-
+        self.setupContentMock(status_page)
         threshold_time = datetime(2016, 6, 30, 10, 0)
         stati = yield get_codecov_status(threshold_time)
-        self.assertEqual(2, len(result))
+        self.assertEqual(2, len(stati))
 
     @inlineCallbacks
     def test_get_github_status_request_success(self):
@@ -107,11 +119,9 @@ class TestFetchStatuses(SynchronousTestCase):
   "last_updated": "2012-12-07T18:11:55Z"
 }
 '''
+        self.setupJsonMock(response)
         status = yield get_github_status()
-        self.assertEqual(
-            u'good',
-            status
-        )
+        self.assertEqual(u'good', status)
 
 
 class RedAlertTests(SynchronousTestCase):
