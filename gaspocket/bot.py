@@ -13,7 +13,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue, DeferredList
 
 from twisted.logger import jsonFileLogObserver, Logger
 
-
+# set the observers up in main
 log = Logger(observer=jsonFileLogObserver(sys.stdout), namespace="gaspocket")
 
 
@@ -90,28 +90,27 @@ def red_alert(codecov, travis, github):
     return github != u'good' or codecov or travis
 
 
+@inlineCallbacks
 def run(reactor):
     threshold = datetime.now() - timedelta(hours=2)
     # these could be done cooperatively/in parallel
-    t_d = get_travis_status(threshold)
-    c_d = get_codecov_status(threshold)
-    g_d = get_github_status()
 
-    d = DeferredList([t_d, c_d, g_d])
+    travis, codecov, github = yield DeferredList(
+        [
+            get_travis_status(threshold),
+            get_codecov_status(threshold),
+            get_github_status()
+        ]
+    )
 
-    def check(resp):
-        print(resp)
-        return resp
-
-    d.addCallback(check)
-    return d
-
-    # # # see if we need to alert
-    # if red_alert(codecov, travis, github):
-    #     log.info("ALL HELL BREAKING LOOSE")
-    # else:
-    #     log.info("things are calm")
-
+    error = 0
+    if red_alert(codecov[1], travis[1], github[1]):
+        log.warn("ALL HELL BREAKING LOOSE")
+        error = 1
+    else:
+        log.info("things are calm")
+        error = 0
+    returnValue(error)
 
 
 # def tweet(check):
