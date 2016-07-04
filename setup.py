@@ -29,7 +29,8 @@ if __name__ == "__main__":
             "twisted",
             "treq",
             "feedparser",
-            "twython"
+            "twython",
+            "attrs"
         ],
         zip_safe=False,
     )

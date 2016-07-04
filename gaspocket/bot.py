@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import os
 
 from time import mktime
+import attr
 
 import feedparser
 
@@ -14,12 +15,20 @@ from twisted.internet.defer import (
     inlineCallbacks, returnValue, DeferredList
 )
 from twisted.internet.threads import deferToThread
+from twisted.internet.task import LoopingCall
 from twisted.logger import Logger
 
 from twython import Twython
 
 # set the observers up in main
 log = Logger(namespace="gaspocket.bot")
+
+
+@attr.s
+class Context(object):
+    # state is a boolean, if true then stormy
+    alert_state = attr.ib()
+    last_update = attr.ib()
 
 
 @inlineCallbacks
@@ -83,6 +92,7 @@ def get_travis_status(threshold_time):
 
 
 def red_alert(codecov, travis, github):
+    # return true if unhappy false if happy
     return github != u'good' or codecov or travis
 
 
@@ -97,7 +107,7 @@ def tweet(message, env=os.environ):
 
 
 @inlineCallbacks
-def run(reactor):
+def check_status(context):
     threshold = datetime.now() - timedelta(hours=2)
 
     travis, codecov, github = yield DeferredList(
@@ -107,38 +117,34 @@ def run(reactor):
             get_github_status()
         ]
     )
-    error = 0
+    # compare to global?
+
+    new_state = red_alert(codecov[1], travis[1], github[1])
+
+    # new_state = false, current_state = false -> do nothing
+    # new_state = true, current_state = true -> do nothing
+    # new_state = false, current_state = true -> alert
+    # new_state = true, current_state = true -> alert
     # we will need to keep track of the last status
-    if red_alert(codecov[1], travis[1], github[1]):
+    if new_state and context.alert_state:
+        log.info('still bad')
+    elif not new_state and not context.alert_state:
+        log.info('still good')
+    elif new_state and not context.alert_state:
         msg = 'ALL HELL BREAKING LOOSE'
         yield deferToThread(tweet, message=msg)
-        error = 1
-    else:
-        msg = 'Things are calm again'
+    elif not new_state and context.alert_state:
+        msg = 'Builds should be back to normal'
         yield deferToThread(tweet, message=msg)
-        error = 0
+    context.state = new_state
+    context.last_update = datetime.now()
 
-    returnValue(error)
-
-
-# def tweet(check):
-#     """Tweet sentence to Twitter."""
-#     try:
-#         sys.stdout.write("{} {}\n".format(len(sentence), sentence))
-#         twitter.update_status(status=sentence)
-#     except:
-#         pass
+    # return the new state of the world
+    returnValue(context)
 
 
-# def do_tweet(file_name):
-#     """Get line and tweet it"""
-#     line = get_line(file_name)
-#     tweet(line)
-
-
-# if __name__ == '__main__':
-#     file_name = str(sys.argv[1])
-#     l = task.LoopingCall(do_tweet, file_name)
-#     l.start(TIMEOUT)
-#     # just use react
-#     reactor.run()
+def run(reactor):
+    context = Context(alert_state=False, last_update=datetime.now())
+    l = LoopingCall(check_status, context)
+    minutes = 5 * 60  # every five minutes
+    return l.start(minutes)
