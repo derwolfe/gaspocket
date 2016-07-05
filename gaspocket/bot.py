@@ -105,8 +105,8 @@ def tweet(message, env=os.environ):
     # try except?
     try:
         twitter.update_status(status=message)
-    except Exception:  # yea, this should be more precise.
-        pass
+    except Exception as e:  # yea, this should be more precise.
+        log.critical(e)
 
 
 @inlineCallbacks
