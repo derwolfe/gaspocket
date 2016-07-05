@@ -105,8 +105,8 @@ def tweet(message, env=os.environ):
     # try except?
     try:
         twitter.update_status(status=message)
-    except Exception, ex:  # yea, this should be more precise.
-        log.error(ex.message)
+    except Exception:  # yea, this should be more precise.
+        pass
 
 
 @inlineCallbacks
@@ -128,7 +128,7 @@ def check_status(context):
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
 
-    log.info(new_state, context)
+    log.info('{0}, {1}'.format(new_state, context.alert_state))
 
     # both are in error state
     if new_state and context.alert_state:
