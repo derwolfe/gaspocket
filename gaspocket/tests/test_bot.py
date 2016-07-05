@@ -1,20 +1,20 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime
-
 import json
+
+from datetime import datetime
 
 import gaspocket
 
 from gaspocket.bot import (
     get_codecov_status,
     get_github_status,
-    get_travis_status,
+    # get_travis_status,
     parse_atom_feed,
     red_alert,
 )
 
-from twisted.internet.defer import inlineCallbacks, returnValue, succeed
+from twisted.internet.defer import inlineCallbacks, succeed
 from twisted.python.filepath import FilePath
 from twisted.trial.unittest import SynchronousTestCase
 

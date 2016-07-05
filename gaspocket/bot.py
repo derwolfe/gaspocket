@@ -1,21 +1,20 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime, timedelta
-
 import os
 
+from datetime import datetime, timedelta
+
 from time import mktime
+
 import attr
 
 import feedparser
 
 import treq
 
-from twisted.internet.defer import (
-    inlineCallbacks, returnValue, DeferredList
-)
-from twisted.internet.threads import deferToThread
+from twisted.internet.defer import DeferredList, inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
 from twisted.logger import Logger
 
 from twython import Twython
