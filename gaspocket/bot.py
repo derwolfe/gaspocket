@@ -117,7 +117,6 @@ def check_status(context):
             get_github_status()
         ]
     )
-    # compare to global?
 
     new_state = red_alert(codecov[1], travis[1], github[1])
 
@@ -125,17 +124,25 @@ def check_status(context):
     # new_state = true, current_state = true -> do nothing
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
-    # we will need to keep track of the last status
+
+    # both are in error state
     if new_state and context.alert_state:
         log.info('still bad')
+
+    # both are in happy state
     elif not new_state and not context.alert_state:
         log.info('still good')
+
+    # happy state to error state
     elif new_state and not context.alert_state:
-        msg = 'ALL HELL BREAKING LOOSE'
+        msg = 'expect problems'
         yield deferToThread(tweet, message=msg)
+
+    # error state to happy state
     elif not new_state and context.alert_state:
         msg = 'Builds should be back to normal'
         yield deferToThread(tweet, message=msg)
+
     context.state = new_state
     context.last_update = datetime.now()
 
