@@ -91,7 +91,8 @@ def get_travis_status(threshold_time):
 
 
 def red_alert(codecov, travis, github):
-    return github != u'good' and not travis and not codecov
+    # return true if an alert should fire.
+    return github == u'bad' or len(travis) > 0 or len(codecov) > 0
 
 
 def tweet(message, env=os.environ):
