@@ -102,6 +102,7 @@ def tweet(message, env=os.environ):
         env['ACCESS_TOKEN'],
         env['ACCESS_TOKEN_SECRET']
     )
+    # try except?
     twitter.update_status(status=message)
 
 
