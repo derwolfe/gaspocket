@@ -103,7 +103,10 @@ def tweet(message, env=os.environ):
         env['ACCESS_TOKEN_SECRET']
     )
     # try except?
-    twitter.update_status(status=message)
+    try:
+        twitter.update_status(status=message)
+    except Exception, ex:  # yea, this should be more precise.
+        log.error(ex.message)
 
 
 @inlineCallbacks
@@ -124,6 +127,8 @@ def check_status(context):
     # new_state = true, current_state = true -> do nothing
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
+
+    log.info(new_state, context)
 
     # both are in error state
     if new_state and context.alert_state:
