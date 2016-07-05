@@ -91,8 +91,7 @@ def get_travis_status(threshold_time):
 
 
 def red_alert(codecov, travis, github):
-    # return true if unhappy false if happy
-    return github != u'good' or codecov or travis
+    return github != u'good' and not travis and not codecov
 
 
 def tweet(message, env=os.environ):
@@ -106,7 +105,7 @@ def tweet(message, env=os.environ):
     try:
         twitter.update_status(status=message)
     except Exception as e:  # yea, this should be more precise.
-        log.critical(e)
+        log.info(str(e))
 
 
 @inlineCallbacks
@@ -128,7 +127,10 @@ def check_status(context):
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
 
-    log.info('{0}, {1}'.format(new_state, context.alert_state))
+    log.info('s0:{s0}, s1:{s1}'.format(
+        s0=context.alert_state,
+        s1=new_state
+    ))
 
     # both are in error state
     if new_state and context.alert_state:
@@ -151,7 +153,6 @@ def check_status(context):
     context.state = new_state
     context.last_update = datetime.now()
 
-    # return the new state of the world
     returnValue(context)
 
 
