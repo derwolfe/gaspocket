@@ -32,24 +32,24 @@ class Context(object):
 
 @inlineCallbacks
 def http_json(url):
-    log.info("Calling {url}".format(url=url))
+    log.info("Calling {url}", url=url)
     response = yield treq.get(url)
-    log.info("Got json response for {url}".format(url=url))
+    log.info("Got json response for {url}", url=url)
     json_response = yield response.json()
     returnValue(json_response)
 
 
 @inlineCallbacks
 def http_content(url):
-    log.info("Calling {url}".format(url=url))
+    log.info("Calling {url}", url=url)
     response = yield treq.get(url)
-    log.info("Got content response for {url}".format(url=url))
+    log.info("Got content response for {url}", url=url)
     content = yield treq.content(response)
     returnValue(content)
 
 
 def parse_atom_feed(feed, threshold_time):
-    log.debug("parsing")
+    log.debug("{status}", status="parsing")
     data = feedparser.parse(feed)
     entries = [e for e in data["items"]]
 
@@ -60,7 +60,7 @@ def parse_atom_feed(feed, threshold_time):
 
         if entry_time > threshold_time:
             filtered.append(entry)
-    log.debug("done parsing")
+    log.debug("{status}", status="done parsing")
     return filtered
 
 
@@ -106,7 +106,7 @@ def tweet(message, env=os.environ):
     try:
         twitter.update_status(status=message)
     except Exception as e:  # yea, this should be more precise.
-        log.info(str(e))
+        log.info("{exc}", exc=str(e))
 
 
 @inlineCallbacks
@@ -128,27 +128,26 @@ def check_status(context):
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
 
-    log.info('s0:{s0}, s1:{s1}'.format(
-        s0=context.alert_state,
-        s1=new_state
-    ))
+    log.info('s0={s0}, s1={s1}', s0=context.alert_state, s1=new_state)
 
     # both are in error state
     if new_state and context.alert_state:
-        log.info('still bad')
+        log.info('status={status}', status='still bad')
 
     # both are in happy state
     elif not new_state and not context.alert_state:
-        log.info('still good')
+        log.info('status={status}', status='still good')
 
     # happy state to error state
     elif new_state and not context.alert_state:
         msg = 'expect problems'
+        log.info('status={status}', status=msg)
         yield deferToThread(tweet, message=msg)
 
     # error state to happy state
     elif not new_state and context.alert_state:
         msg = 'Builds should be back to normal'
+        log.info('status={status}', status=msg)
         yield deferToThread(tweet, message=msg)
 
     context.state = new_state
