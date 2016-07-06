@@ -123,13 +123,17 @@ def check_status(context, period):
 
     new_state = red_alert(codecov[1], travis[1], github[1])
 
+    print(new_state, travis, codecov, github)
+
     # new_state = false, current_state = false -> do nothing
     # new_state = true, current_state = true -> do nothing
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
 
-    log.info('s0-updated-at={s0.last_update},s0={s0.alert_state}, s1={s1}',
-             s0=context, s1=new_state)
+    log.info('updated_at={s0_update},s0={s0_alert_state}, s1={s1}',
+             s0_update=context.last_update,
+             s0_alert_state=context.alert_state,
+             s1=new_state)
 
     # both are in error state
     if new_state and context.alert_state:
@@ -146,6 +150,7 @@ def check_status(context, period):
         yield deferToThread(tweet, message=msg)
 
     # error state to happy state
+    # how should you transition _back_ to a happy state?
     elif not new_state and context.alert_state:
         msg = 'Builds should be back to normal'
         log.info('status={status}', status=msg)
