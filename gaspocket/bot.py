@@ -110,8 +110,8 @@ def tweet(message, env=os.environ):
 
 
 @inlineCallbacks
-def check_status(context):
-    threshold = datetime.now() - timedelta(hours=2)
+def check_status(context, period):
+    threshold = datetime.now() - timedelta(seconds=period)
 
     travis, codecov, github = yield DeferredList(
         [
@@ -128,7 +128,8 @@ def check_status(context):
     # new_state = false, current_state = true -> alert
     # new_state = true, current_state = true -> alert
 
-    log.info('s0={s0}, s1={s1}', s0=context.alert_state, s1=new_state)
+    log.info('s0-updated-at={s0.last_update},s0={s0.alert_state}, s1={s1}',
+             s0=context, s1=new_state)
 
     # both are in error state
     if new_state and context.alert_state:
@@ -142,15 +143,15 @@ def check_status(context):
     elif new_state and not context.alert_state:
         msg = 'expect problems'
         log.info('status={status}', status=msg)
-        yield deferToThread(tweet, message=msg)
+        # yield deferToThread(tweet, message=msg)
 
     # error state to happy state
     elif not new_state and context.alert_state:
         msg = 'Builds should be back to normal'
         log.info('status={status}', status=msg)
-        yield deferToThread(tweet, message=msg)
+        # yield deferToThread(tweet, message=msg)
 
-    context.state = new_state
+    context.alert_state = new_state
     context.last_update = datetime.now()
 
     returnValue(context)
@@ -158,6 +159,6 @@ def check_status(context):
 
 def run(reactor):
     context = Context(alert_state=False, last_update=datetime.now())
-    l = LoopingCall(check_status, context)
-    minutes = 5 * 60  # every five minutes
-    return l.start(minutes)
+    period_seconds = 5 * 60
+    l = LoopingCall(check_status, context, period_seconds)
+    return l.start(period_seconds)
