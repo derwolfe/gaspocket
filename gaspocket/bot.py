@@ -143,13 +143,13 @@ def check_status(context, period):
     elif new_state and not context.alert_state:
         msg = 'expect problems'
         log.info('status={status}', status=msg)
-        # yield deferToThread(tweet, message=msg)
+        yield deferToThread(tweet, message=msg)
 
     # error state to happy state
     elif not new_state and context.alert_state:
         msg = 'Builds should be back to normal'
         log.info('status={status}', status=msg)
-        # yield deferToThread(tweet, message=msg)
+        yield deferToThread(tweet, message=msg)
 
     context.alert_state = new_state
     context.last_update = datetime.now()
