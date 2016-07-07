@@ -24,7 +24,7 @@ from twython import Twython
 log = Logger(namespace="gaspocket.bot")
 
 
-REGEX = re.compile(r'\bfixed\b|\bgood\b|\bresolved\b', re.IGNORECASE)
+REGEX = re.compile(r'\b(fixed|good|resolved)\b', re.IGNORECASE)
 
 
 @attr.s
