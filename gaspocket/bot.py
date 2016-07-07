@@ -166,7 +166,10 @@ def check_status(context, period):
         yield deferToThread(tweet, message=msg)
 
     # update state
-    context.alert_state = new_state
+    if repaired:
+        context.alert_state = True
+    else:
+        context.alert_state = new_state
     context.last_update = datetime.now()
 
     returnValue(context)
