@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import re
 
 from datetime import datetime, timedelta
 
@@ -60,6 +61,7 @@ def parse_atom_feed(feed, threshold_time):
 
         if entry_time > threshold_time:
             filtered.append(entry)
+
     log.debug("{status}", status="done parsing")
     return filtered
 
@@ -109,6 +111,18 @@ def tweet(message, env=os.environ):
         log.info("{exc}", exc=str(e))
 
 
+def fixed(entries):
+    rx = re.compile('fix|good|resolved', re.IGNORECASE)
+    for entry in entries:
+        entry_html = entry['content'][0]['value']
+        match = rx.search(entry_html).group()
+        if match:
+            return True
+        else:
+            continue
+    return False
+
+
 @inlineCallbacks
 def check_status(context, period):
     threshold = datetime.now() - timedelta(seconds=period)
@@ -120,15 +134,11 @@ def check_status(context, period):
             get_github_status()
         ]
     )
-
     new_state = red_alert(codecov[1], travis[1], github[1])
 
-    print(new_state, travis, codecov, github)
-
-    # new_state = false, current_state = false -> do nothing
-    # new_state = true, current_state = true -> do nothing
-    # new_state = false, current_state = true -> alert
-    # new_state = true, current_state = true -> alert
+    codecov_fixed = fixed(codecov[1])
+    travis_fixed = fixed(travis[1])
+    repaired = bool(codecov_fixed or travis_fixed)
 
     log.info('updated_at={s0_update},s0={s0_alert_state}, s1={s1}',
              s0_update=context.last_update,
@@ -150,12 +160,12 @@ def check_status(context, period):
         yield deferToThread(tweet, message=msg)
 
     # error state to happy state
-    # how should you transition _back_ to a happy state?
-    elif not new_state and context.alert_state:
+    elif repaired and context.alert_state:
         msg = 'Builds should be back to normal'
         log.info('status={status}', status=msg)
         yield deferToThread(tweet, message=msg)
 
+    # update state
     context.alert_state = new_state
     context.last_update = datetime.now()
 

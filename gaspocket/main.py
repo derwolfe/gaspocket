@@ -8,7 +8,6 @@ from twisted.internet.task import react
 
 from twisted.logger import globalLogPublisher, jsonFileLogObserver
 
-
 globalLogPublisher.addObserver(jsonFileLogObserver(sys.stdout))
 
 
