@@ -24,6 +24,9 @@ from twython import Twython
 log = Logger(namespace="gaspocket.bot")
 
 
+REGEX = re.compile(r'\bfixed\b|\bgood\b|\bresolved\b', re.IGNORECASE)
+
+
 @attr.s
 class Context(object):
     # state is a boolean, if true then stormy
@@ -112,11 +115,10 @@ def tweet(message, env=os.environ):
 
 
 def fixed(entries):
-    rx = re.compile('fix|good|resolved', re.IGNORECASE)
     for entry in entries:
         entry_html = entry['content'][0]['value']
-        match = rx.search(entry_html).group()
-        if match:
+        match = REGEX.search(entry_html)
+        if match is not None:
             return True
         else:
             continue

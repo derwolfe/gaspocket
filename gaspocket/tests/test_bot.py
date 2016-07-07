@@ -7,6 +7,7 @@ from datetime import datetime
 import gaspocket
 
 from gaspocket.bot import (
+    fixed,
     get_codecov_status,
     get_github_status,
     # get_travis_status,
@@ -145,3 +146,26 @@ class RedAlertTests(SynchronousTestCase):
 
         c, t, g = ([1], [1], u'bad')
         self.assertTrue(red_alert(c, t, g))
+
+
+class FixedTests(SynchronousTestCase):
+
+    def build_entry(self, word):
+        return {
+            'content': [
+                {'value': word}
+            ]
+        }
+
+    def test_returns_true_when_good_words_found(self):
+        fixed_words = ['fixed', 'good', 'resolved']
+        entries = [self.build_entry(w) for w in fixed_words]
+        for e in entries:
+            self.assertTrue(fixed([e]))
+
+    def test_returns_false_when_no_good_words_found(self):
+        # any non word not equal to fix, good, resolved
+        words = ['fixus', 'goodsies', 'resolvedes']
+        entries = [self.build_entry(w) for w in words]
+        for e in entries:
+            self.assertFalse(fixed([e]))
