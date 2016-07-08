@@ -169,7 +169,7 @@ def check_status(context, period):
 
     # update state
     if repaired:
-        context.alert_state = True
+        context.alert_state = False
     else:
         context.alert_state = new_state
     context.last_update = datetime.now()
