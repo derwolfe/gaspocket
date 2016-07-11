@@ -6,10 +6,9 @@ from gaspocket.bot import run
 
 from twisted.internet.task import react
 
-from twisted.logger import globalLogPublisher, jsonFileLogObserver
+from twisted.logger import globalLogPublisher, textFileLogObserver
 
-globalLogPublisher.addObserver(jsonFileLogObserver(sys.stdout))
-
+globalLogPublisher.addObserver(textFileLogObserver(sys.stdout))
 
 if __name__ == '__main__':
     react(run, [])
