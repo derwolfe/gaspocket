@@ -80,8 +80,26 @@ def tweet(message, env=os.environ):
         log.info(u'{exc}', exc=str(e))
 
 
+def create_tweet_msg(s0, s1):
+    msg = None
+    if s0 == BAD and s1 == BAD:
+        log.info('status={status}', status=u'still bad')
+
+    elif s0 == GOOD and s1 == GOOD:
+        log.info(u'status={status}', status=u'still good')
+
+    elif s0 == GOOD and s1 == BAD:
+        msg = u'expect problems'
+        log.info(u'status={status}', status=msg)
+
+    elif s0 == BAD and s1 == GOOD:
+        msg = u'Builds should be back to normal'
+        log.info(u'status={status}', status=msg)
+    return msg
+
+
 @inlineCallbacks
-def check_status(context):
+def run_world(context):
 
     travis, codecov, github = yield DeferredList(
         [
@@ -101,20 +119,8 @@ def check_status(context):
              s0_state=context.state,
              s1=new_state)
 
-    if context.state == BAD and new_state == BAD:
-        log.info('status={status}', status=u'still bad')
-
-    elif context.state == GOOD and new_state == GOOD:
-        log.info(u'status={status}', status=u'still good')
-
-    elif context.state == GOOD and new_state == BAD:
-        msg = u'expect problems'
-        log.info(u'status={status}', status=msg)
-        yield deferToThread(tweet, message=msg)
-
-    elif context.state == BAD and new_state == GOOD:
-        msg = u'Builds should be back to normal'
-        log.info(u'status={status}', status=msg)
+    msg = create_tweet_msg(context.state, new_state)
+    if msg is not None:
         yield deferToThread(tweet, message=msg)
 
     context.state = new_state
@@ -126,5 +132,5 @@ def check_status(context):
 def run(reactor):
     context = Context(state=GOOD, last_update=datetime.now())
     period_seconds = 2 * 60
-    l = LoopingCall(check_status, context)
+    l = LoopingCall(run_world, context)
     return l.start(period_seconds)

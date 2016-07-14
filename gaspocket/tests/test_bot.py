@@ -66,7 +66,6 @@ class ParseStatusTests(SynchronousTestCase):
         message = {
             u'status': u'good',
             u'last_updated': u'2012-12-07T18:11:55Z'
-
         }
         self.assertEqual(
             u'good', parse_github(message)
