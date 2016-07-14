@@ -80,22 +80,36 @@ def tweet(message, env=os.environ):
         log.info(u'{exc}', exc=str(e))
 
 
+@attr.s
+class TweetMsg(object):
+    send = attr.ib()
+    msg = attr.ib()
+
+
 def create_tweet_msg(s0, s1):
-    msg = None
     if s0 == BAD and s1 == BAD:
-        log.info('status={status}', status=u'still bad')
+        return TweetMsg(
+            msg=u'still bad',
+            send=False
+        )
 
     elif s0 == GOOD and s1 == GOOD:
-        log.info(u'status={status}', status=u'still good')
+        return TweetMsg(
+            msg=u'still good',
+            send=False
+        )
 
     elif s0 == GOOD and s1 == BAD:
-        msg = u'expect problems'
-        log.info(u'status={status}', status=msg)
+        return TweetMsg(
+            msg=u'expect problems',
+            send=True
+        )
 
     elif s0 == BAD and s1 == GOOD:
-        msg = u'Builds should be back to normal'
-        log.info(u'status={status}', status=msg)
-    return msg
+        return TweetMsg(
+            msg=u'builds should be back to normal',
+            send=True
+        )
 
 
 @inlineCallbacks
@@ -119,9 +133,10 @@ def run_world(context):
              s0_state=context.state,
              s1=new_state)
 
-    msg = create_tweet_msg(context.state, new_state)
-    if msg is not None:
-        yield deferToThread(tweet, message=msg)
+    tweet = create_tweet_msg(context.state, new_state)
+    log.info(u'{status}', status=tweet.msg)
+    if tweet.send:
+        yield deferToThread(tweet, message=tweet.msg)
 
     context.state = new_state
     context.last_update = datetime.now()
