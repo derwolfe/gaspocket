@@ -11,6 +11,7 @@ from gaspocket.bot import (
     GOOD,
     STATUS_IO_GOOD,
     TRAVIS,
+    create_tweet_msg,
     get_json_status,
     parse_github,
     parse_statusio,
@@ -84,22 +85,51 @@ class ParseStatusTests(SynchronousTestCase):
 
 class RedAlertTests(SynchronousTestCase):
 
+    def assertGood(self, result):
+        self.assertEqual(GOOD, result)
+
+    def assertBad(self, result):
+        self.assertEqual(BAD, result)
+
     def test_no_alert_conditions(self):
         c, t, g = (STATUS_IO_GOOD, STATUS_IO_GOOD, GITHUB_GOOD)
-        self.assertEqual(GOOD, red_alert(c, t, g))
+        self.assertGood(red_alert(c, t, g))
 
     def test_alert_conditions(self):
         c, t, g = (STATUS_IO_GOOD, u'badness', GITHUB_GOOD)
-        self.assertEqual(BAD, red_alert(c, t, g))
+        self.assertBad(red_alert(c, t, g))
 
         c, t, g = (u'badness', STATUS_IO_GOOD, GITHUB_GOOD)
-        self.assertEqual(BAD, red_alert(c, t, g))
+        self.assertBad(red_alert(c, t, g))
 
         c, t, g = (STATUS_IO_GOOD, STATUS_IO_GOOD, u'bad')
-        self.assertEqual(BAD, red_alert(c, t, g))
+        self.assertBad(red_alert(c, t, g))
 
         c, t, g = (STATUS_IO_GOOD, u'badness',  u'bad')
-        self.assertEqual(BAD, red_alert(c, t, g))
+        self.assertBad(red_alert(c, t, g))
 
         c, t, g = (u'badness', u'badness',  u'bad')
-        self.assertEqual(BAD, red_alert(c, t, g))
+        self.assertBad(red_alert(c, t, g))
+
+
+class TestCreateTweetMsg(SynchronousTestCase):
+
+    def test_still_bad(self):
+        t = create_tweet_msg(BAD, BAD)
+        self.assertEqual(u'still bad', t.msg)
+        self.assertFalse(t.send)
+
+    def test_still_good(self):
+        t = create_tweet_msg(GOOD, GOOD)
+        self.assertEqual(u'still good', t.msg)
+        self.assertFalse(t.send)
+
+    def test_getting_bad(self):
+        t = create_tweet_msg(GOOD, BAD)
+        self.assertEqual(u'expect problems', t.msg)
+        self.assertTrue(t.send)
+
+    def test_getting_better(self):
+        t = create_tweet_msg(BAD, GOOD)
+        self.assertEqual(u'builds should be back to normal', t.msg)
+        self.assertTrue(t.send)
