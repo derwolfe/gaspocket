@@ -134,7 +134,8 @@ def run_world(context):
              s1=new_state)
 
     tweet = create_tweet_msg(context.state, new_state)
-    log.info(u'{status}', status=tweet.msg)
+    log.info(u'msg={status.msg}, send={status.send}', status=tweet)
+
     if tweet.send:
         yield deferToThread(tweet, message=tweet.msg)
 
@@ -146,6 +147,6 @@ def run_world(context):
 
 def run(reactor):
     context = Context(state=GOOD, last_update=datetime.now())
-    period_seconds = 2 * 60
     l = LoopingCall(run_world, context)
+    period_seconds = 2 * 60
     return l.start(period_seconds)
