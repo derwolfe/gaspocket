@@ -28,7 +28,6 @@ if __name__ == "__main__":
         install_requires=[
             "twisted",
             "treq",
-            "feedparser",
             "twython",
             "attrs"
         ],
