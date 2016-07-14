@@ -134,9 +134,9 @@ def run_world(context):
              s1=new_state)
 
     toot = create_tweet_msg(context.state, new_state)
-    log.info(u'msg={status.msg}, send={status.send}', status=tweet)
+    log.info(u'msg={status.msg}, send={status.send}', status=toot)
 
-    if tweet.send:
+    if toot.send:
         yield deferToThread(tweet, message=toot.msg)
 
     context.state = new_state
