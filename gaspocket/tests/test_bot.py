@@ -2,6 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
+from datetime import datetime
+
 import gaspocket
 
 from gaspocket.bot import (
@@ -10,25 +12,26 @@ from gaspocket.bot import (
     GITHUB_GOOD,
     GOOD,
     STATUS_IO_GOOD,
+    TIMEOUT_MESSAGE,
     TRAVIS,
-    create_tweet_msg,
-    get_json_status,
-    parse_github,
-    parse_statusio,
-    red_alert
+    Context,
+    _parse_github,
+    _parse_statusio,
+    fetch_and_parse,
+    get_next_state
 )
 
-from twisted.internet.defer import inlineCallbacks, succeed
+from twisted.internet.defer import CancelledError, inlineCallbacks, succeed
 from twisted.trial.unittest import SynchronousTestCase
 
 
-class TestFetchStatuses(SynchronousTestCase):
+class FetchAndParseTests(SynchronousTestCase):
 
     def setupJsonMock(self, response):
         def fake_json(_arg):
             return succeed(json.loads(response))
 
-        self.patch(gaspocket.bot, 'http_json', fake_json)
+        self.patch(gaspocket.bot, '_get_json', fake_json)
 
     @inlineCallbacks
     def test_get_github_status_request_success(self):
@@ -39,8 +42,8 @@ class TestFetchStatuses(SynchronousTestCase):
 }
 '''
         self.setupJsonMock(response)
-        msg = yield get_json_status(GITHUB)
-        self.assertEqual(json.loads(response), msg)
+        msg = yield fetch_and_parse(GITHUB)
+        self.assertEqual(u'good', msg)
 
     @inlineCallbacks
     def test_get_statusio_status_request_success(self):
@@ -57,8 +60,18 @@ class TestFetchStatuses(SynchronousTestCase):
     }
 }'''
         self.setupJsonMock(response)
-        msg = yield get_json_status(TRAVIS)
-        self.assertEqual(json.loads(response), msg)
+        msg = yield fetch_and_parse(TRAVIS)
+        self.assertEqual(u'All Systems Operational', msg)
+
+    @inlineCallbacks
+    def test_returns_timeout_message_on_timeout(self):
+        def timeout(*args, **kwargs):
+            raise CancelledError('I timeout')
+
+        self.patch(gaspocket.bot, '_get_json', timeout)
+
+        msg = yield fetch_and_parse(u'who cares')
+        self.assertEqual(TIMEOUT_MESSAGE, msg)
 
 
 class ParseStatusTests(SynchronousTestCase):
@@ -69,7 +82,7 @@ class ParseStatusTests(SynchronousTestCase):
             u'last_updated': u'2012-12-07T18:11:55Z'
         }
         self.assertEqual(
-            u'good', parse_github(message)
+            u'good', _parse_github(message)
         )
 
     def test_parses_statusio(self):
@@ -79,11 +92,11 @@ class ParseStatusTests(SynchronousTestCase):
             }
         }
         self.assertEqual(
-            u'hi', parse_statusio(message)
+            u'hi', _parse_statusio(message)
         )
 
 
-class RedAlertTests(SynchronousTestCase):
+class GetNextStateTests(SynchronousTestCase):
 
     def assertGood(self, result):
         self.assertEqual(GOOD, result)
@@ -93,43 +106,48 @@ class RedAlertTests(SynchronousTestCase):
 
     def test_no_alert_conditions(self):
         c, t, g = (STATUS_IO_GOOD, STATUS_IO_GOOD, GITHUB_GOOD)
-        self.assertGood(red_alert(c, t, g))
+        self.assertGood(get_next_state(c, t, g))
 
     def test_alert_conditions(self):
         c, t, g = (STATUS_IO_GOOD, u'badness', GITHUB_GOOD)
-        self.assertBad(red_alert(c, t, g))
+        self.assertBad(get_next_state(c, t, g))
 
         c, t, g = (u'badness', STATUS_IO_GOOD, GITHUB_GOOD)
-        self.assertBad(red_alert(c, t, g))
+        self.assertBad(get_next_state(c, t, g))
 
         c, t, g = (STATUS_IO_GOOD, STATUS_IO_GOOD, u'bad')
-        self.assertBad(red_alert(c, t, g))
+        self.assertBad(get_next_state(c, t, g))
 
         c, t, g = (STATUS_IO_GOOD, u'badness',  u'bad')
-        self.assertBad(red_alert(c, t, g))
+        self.assertBad(get_next_state(c, t, g))
 
         c, t, g = (u'badness', u'badness',  u'bad')
-        self.assertBad(red_alert(c, t, g))
+        self.assertBad(get_next_state(c, t, g))
 
 
-class TestCreateTweetMsg(SynchronousTestCase):
+# class GetJsonTests(SynchronousTestCase):
 
-    def test_still_bad(self):
-        t = create_tweet_msg(BAD, BAD)
-        self.assertEqual(u'still bad', t.msg)
-        self.assertFalse(t.send)
+#     def test_returns_parsed_json(self):
+#         self.fail()
 
-    def test_still_good(self):
-        t = create_tweet_msg(GOOD, GOOD)
-        self.assertEqual(u'still good', t.msg)
-        self.assertFalse(t.send)
+#     def test_cancels_request_after_timeout_reached(self):
+#         self.fail()
 
-    def test_getting_bad(self):
-        t = create_tweet_msg(GOOD, BAD)
-        self.assertEqual(u'expect problems', t.msg)
-        self.assertTrue(t.send)
 
-    def test_getting_better(self):
-        t = create_tweet_msg(BAD, GOOD)
-        self.assertEqual(u'builds should be back to normal', t.msg)
-        self.assertTrue(t.send)
+# class RunWorldTests(SynchronousTestCase):
+
+#     def _build_context(self):
+#         return Context(
+#             state=GOOD,
+#             messages={},
+#             last_update=datetime.now()
+#         )
+
+#     def setupTreqMock(self, response):
+#         def fake_json(*arg, **kwargs):
+#             return succeed(json.loads(response))
+
+#         self.patch(treq, 'get', fake_json)
+
+#     def test_updates_world_on_iteration(self):
+#         ctx = self._build_context()

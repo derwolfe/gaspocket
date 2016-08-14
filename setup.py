@@ -28,7 +28,7 @@ if __name__ == "__main__":
         install_requires=[
             "twisted",
             "treq",
-            "twython",
+            "klein",
             "attrs"
         ],
         zip_safe=False,
