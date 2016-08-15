@@ -2,8 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-from datetime import datetime
-
 import gaspocket
 
 from gaspocket.bot import (
@@ -14,7 +12,6 @@ from gaspocket.bot import (
     STATUS_IO_GOOD,
     TIMEOUT_MESSAGE,
     TRAVIS,
-    Context,
     _parse_github,
     _parse_statusio,
     fetch_and_parse,

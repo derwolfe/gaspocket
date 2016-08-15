@@ -1,3 +1,3 @@
 # Gaspocket
 
-I tell twitter if codecov, github, and travis are experiencing problems.
+Displays a page that shows whether or not travis, github, and codecov are experiencing problems.

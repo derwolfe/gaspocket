@@ -5,11 +5,9 @@ sudo: false
 language: python
 matrix:
   include:
-  - python: '2.7'
-    env: TOXENV=py27
   - python: '3.5'
     env: TOXENV=py35
-  - python: '2.7'
+  - python: '3.5'
     env: TOXENV=pep8
 install: pip install tox codecov
 script: tox
