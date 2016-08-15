@@ -138,7 +138,7 @@ def run(reactor):
 
     api = HTTPApi(context=context)
     endpoint = TCP4ServerEndpoint(
-        reactor=reactor, port=8080, interface='127.0.0.1')
+        reactor=reactor, port=8080, interface=u'127.0.0.1')
     endpoint.listen(Site(api.app.resource()))
 
     l = LoopingCall(run_world, context)
