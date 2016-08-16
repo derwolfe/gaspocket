@@ -29,7 +29,9 @@ if __name__ == "__main__":
             "twisted",
             "treq",
             "klein",
-            "attrs"
+            "attrs",
+            "prometheus",
+            "prometheus_async"
         ],
         zip_safe=False,
     )

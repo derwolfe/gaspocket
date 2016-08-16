@@ -8,6 +8,9 @@ import attr
 
 from klein import Klein
 
+from prometheus_client import Counter
+from prometheus_client.twisted import MetricsResource
+
 import treq
 
 from twisted.internet.defer import (
@@ -36,6 +39,22 @@ CODECOV = u'https://wdzsn5dlywj9.statuspage.io/api/v2/status.json'
 TRAVIS = u'https://pnpcptp8xh9k.statuspage.io/api/v2/status.json'
 
 TIMEOUT_MESSAGE = u'Request timed out'
+
+INBOUND_REQUESTS = Counter(
+    'inbound_requests_total',
+    'HTTP Failures',
+    ['endpoint', 'method']
+)
+SUCCESSES = Counter(
+    'success_outbound_checks',
+    'Outbound status check successes',
+    ['url']
+)
+TIMEOUTS = Counter(
+    'timed_out_status_checks',
+    'Outbound status check failures',
+    ['url']
+)
 
 
 @attr.s
@@ -67,8 +86,12 @@ def fetch_and_parse(url):
     try:
         message = yield _get_json(url)
     except CancelledError:
+        TIMEOUTS.labels(url).inc()
         log.info(u'Timed out fetching {url}', url=url)
         returnValue(TIMEOUT_MESSAGE)
+
+    SUCCESSES.labels(url).inc()
+
     if url in [TRAVIS, CODECOV]:
         returnValue(_parse_statusio(message))
     else:
@@ -125,8 +148,14 @@ class HTTPApi(object):
 
     @app.route('/')
     def home(self, request):
+        INBOUND_REQUESTS.labels('/', 'GET').inc()
         request.setHeader('Content-Type', 'application/json')
         return json.dumps(attr.asdict(self.context), indent=4)
+
+    @app.route('/metrics')
+    def metrics(self, request):
+        INBOUND_REQUESTS.labels('/metrics', 'GET').inc()
+        return MetricsResource()
 
 
 def run(reactor):
