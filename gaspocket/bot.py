@@ -2,6 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
+import os
+
 from datetime import datetime, timezone
 
 import attr
@@ -159,6 +161,7 @@ class HTTPApi(object):
 
 
 def run(reactor):
+    port = int(os.environ.get("PORT", 8080))
     context = Context(
         state=GOOD,
         messages={},
@@ -167,7 +170,7 @@ def run(reactor):
 
     api = HTTPApi(context=context)
     endpoint = TCP4ServerEndpoint(
-        reactor=reactor, port=8080, interface=u'127.0.0.1')
+        reactor=reactor, port=port, interface=u'127.0.0.1')
     endpoint.listen(Site(api.app.resource()))
 
     l = LoopingCall(run_world, context)

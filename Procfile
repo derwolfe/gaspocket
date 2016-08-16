@@ -1,1 +1,1 @@
-worker: python -m gaspocket.main
+web: python -m gaspocket.main
