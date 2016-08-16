@@ -8,6 +8,9 @@ import attr
 
 from klein import Klein
 
+from prometheus_client import Counter
+from prometheus_client.twisted import MetricsResource
+
 import treq
 
 from twisted.internet.defer import (
@@ -20,9 +23,6 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.task import LoopingCall
 from twisted.logger import Logger
 from twisted.web.server import Site
-
-from prometheus_client import Counter
-from prometheus_client.twisted import MetricsResource
 
 
 # set the observers up in main
