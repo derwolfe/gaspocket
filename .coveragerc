@@ -1,0 +1,11 @@
+[run]
+branch = True
+source = gaspocket
+
+[paths]
+source =
+   src/gaspocket
+   .tox/*/lib/python*/site-packages/gaspocket
+
+[report]
+show_missing = True

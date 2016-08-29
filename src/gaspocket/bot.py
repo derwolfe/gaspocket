@@ -43,19 +43,19 @@ TRAVIS = u'https://pnpcptp8xh9k.statuspage.io/api/v2/status.json'
 TIMEOUT_MESSAGE = u'Request timed out'
 
 INBOUND_REQUESTS = Counter(
-    'inbound_requests_total',
-    'HTTP Failures',
-    ['endpoint', 'method']
+    u'inbound_requests_total',
+    u'HTTP Failures',
+    [u'endpoint', u'method']
 )
 SUCCESSES = Counter(
-    'success_outbound_checks',
-    'Outbound status check successes',
-    ['url']
+    u'success_outbound_checks',
+    u'Outbound status check successes',
+    [u'url']
 )
 TIMEOUTS = Counter(
-    'timed_out_status_checks',
-    'Outbound status check failures',
-    ['url']
+    u'timed_out_status_checks',
+    u'Outbound status check failures',
+    [u'url']
 )
 
 
@@ -150,18 +150,18 @@ class HTTPApi(object):
 
     @app.route('/')
     def home(self, request):
-        INBOUND_REQUESTS.labels('/', 'GET').inc()
-        request.setHeader('Content-Type', 'application/json')
+        INBOUND_REQUESTS.labels(u'/', u'GET').inc()
+        request.setHeader(b'Content-Type', b'application/json')
         return json.dumps(attr.asdict(self.context), indent=4)
 
     @app.route('/metrics')
     def metrics(self, request):
-        INBOUND_REQUESTS.labels('/metrics', 'GET').inc()
+        INBOUND_REQUESTS.labels(u'/metrics', u'GET').inc()
         return MetricsResource()
 
 
 def run(reactor):
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get(u'PORT', 8080))
     context = Context(
         state=GOOD,
         messages={},
