@@ -2,9 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-import os
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import attr
 
@@ -21,10 +20,8 @@ from twisted.internet.defer import (
     inlineCallbacks,
     returnValue
 )
-from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet.task import LoopingCall
+
 from twisted.logger import Logger
-from twisted.web.server import Site
 
 
 # set the observers up in main
@@ -137,7 +134,7 @@ def run_world(context):
         u'travis': parsed_travis,
         u'codecov': parsed_codecov
     }
-    context.last_update = datetime.now(timezone.utc).isoformat()
+    context.last_update = datetime.now().isoformat()
     returnValue(context)
 
 
@@ -158,21 +155,3 @@ class HTTPApi(object):
     def metrics(self, request):
         INBOUND_REQUESTS.labels(u'/metrics', u'GET').inc()
         return MetricsResource()
-
-
-def run(reactor):
-    port = int(os.environ.get(u'PORT', 8080))
-    context = Context(
-        state=GOOD,
-        messages={},
-        last_update=datetime.now(timezone.utc).isoformat()
-    )
-
-    api = HTTPApi(context=context)
-    endpoint = TCP4ServerEndpoint(
-        reactor=reactor, port=port, interface=u'0.0.0.0')
-    endpoint.listen(Site(api.app.resource()))
-
-    l = LoopingCall(run_world, context)
-    period_seconds = 2 * 60
-    return l.start(period_seconds)

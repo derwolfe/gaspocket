@@ -8,7 +8,7 @@ DESCRIPTION = (
 if __name__ == "__main__":
     setup(
         name="gaspocket",
-        version="0.1",
+        version="0.2",
         description=DESCRIPTION,
         license="MIT",
         author="Chris Wolfe",
@@ -26,5 +26,5 @@ if __name__ == "__main__":
         ],
         zip_safe=False,
         package_dir={'': 'src'},
-        packages=find_packages(where='src', exclude=[])
+        packages=find_packages(where='src', exclude=[]) + ['twisted.plugins']
     )
