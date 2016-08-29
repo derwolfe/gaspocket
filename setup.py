@@ -1,10 +1,15 @@
 from setuptools import find_packages, setup
 
+DESCRIPTION = (
+    "Web site that checks codecov, travis, and github status pages "
+    "every few minutes."
+)
+
 if __name__ == "__main__":
     setup(
         name="gaspocket",
         version="0.1",
-        description="Twitter bot to check codecov, travis, and github status",
+        description=DESCRIPTION,
         license="MIT",
         author="Chris Wolfe",
         author_email="chriswwolfe@gmail.com",
