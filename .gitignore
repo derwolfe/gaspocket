@@ -4,3 +4,4 @@
 gaspocket.egg-info
 _trial_temp
 .coverage
+**/dropin.cache

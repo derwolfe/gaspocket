@@ -2,9 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import json
 
-import os
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import attr
 
@@ -21,10 +20,8 @@ from twisted.internet.defer import (
     inlineCallbacks,
     returnValue
 )
-from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet.task import LoopingCall
+
 from twisted.logger import Logger
-from twisted.web.server import Site
 
 
 # set the observers up in main
@@ -43,19 +40,19 @@ TRAVIS = u'https://pnpcptp8xh9k.statuspage.io/api/v2/status.json'
 TIMEOUT_MESSAGE = u'Request timed out'
 
 INBOUND_REQUESTS = Counter(
-    'inbound_requests_total',
-    'HTTP Failures',
-    ['endpoint', 'method']
+    u'inbound_requests_total',
+    u'HTTP Failures',
+    [u'endpoint', u'method']
 )
 SUCCESSES = Counter(
-    'success_outbound_checks',
-    'Outbound status check successes',
-    ['url']
+    u'success_outbound_checks',
+    u'Outbound status check successes',
+    [u'url']
 )
 TIMEOUTS = Counter(
-    'timed_out_status_checks',
-    'Outbound status check failures',
-    ['url']
+    u'timed_out_status_checks',
+    u'Outbound status check failures',
+    [u'url']
 )
 
 
@@ -137,7 +134,7 @@ def run_world(context):
         u'travis': parsed_travis,
         u'codecov': parsed_codecov
     }
-    context.last_update = datetime.now(timezone.utc).isoformat()
+    context.last_update = datetime.now().isoformat()
     returnValue(context)
 
 
@@ -150,29 +147,11 @@ class HTTPApi(object):
 
     @app.route('/')
     def home(self, request):
-        INBOUND_REQUESTS.labels('/', 'GET').inc()
-        request.setHeader('Content-Type', 'application/json')
+        INBOUND_REQUESTS.labels(u'/', u'GET').inc()
+        request.setHeader(b'Content-Type', b'application/json')
         return json.dumps(attr.asdict(self.context), indent=4)
 
     @app.route('/metrics')
     def metrics(self, request):
-        INBOUND_REQUESTS.labels('/metrics', 'GET').inc()
+        INBOUND_REQUESTS.labels(u'/metrics', u'GET').inc()
         return MetricsResource()
-
-
-def run(reactor):
-    port = int(os.environ.get("PORT", 8080))
-    context = Context(
-        state=GOOD,
-        messages={},
-        last_update=datetime.now(timezone.utc).isoformat()
-    )
-
-    api = HTTPApi(context=context)
-    endpoint = TCP4ServerEndpoint(
-        reactor=reactor, port=port, interface=u'0.0.0.0')
-    endpoint.listen(Site(api.app.resource()))
-
-    l = LoopingCall(run_world, context)
-    period_seconds = 2 * 60
-    return l.start(period_seconds)

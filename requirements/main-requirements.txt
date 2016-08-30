@@ -1,0 +1,6 @@
+twisted>=16.4.0
+treq
+klein
+attrs
+prometheus
+prometheus_async
